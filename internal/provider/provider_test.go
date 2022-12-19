@@ -1,14 +1,15 @@
 package provider
 
 import (
-	"testing"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"testing"
 )
 
 // providerFactories are used to instantiate a provider during acceptance testing.
 // The factory function will be invoked for every Terraform CLI command executed
 // to create a provider server to which the CLI can reattach.
+//
+//nolint:unused // used in acctests
 var providerFactories = map[string]func() (*schema.Provider, error){
 	"scaffolding": func() (*schema.Provider, error) {
 		return New("dev")(), nil

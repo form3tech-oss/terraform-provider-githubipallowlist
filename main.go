@@ -2,10 +2,10 @@ package main
 
 import (
 	"flag"
+	"github.com/form3tech-oss/terraform-provider-githubipallowlist/internal/provider"
 	"runtime/debug"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
-	"github.com/hashicorp/terraform-provider-scaffolding/internal/provider"
 )
 
 // Run "go generate" to format example terraform files and generate the docs for the registry/website

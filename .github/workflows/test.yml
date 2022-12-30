@@ -73,6 +73,9 @@ jobs:
         with:
           terraform_version: '1.3.*'
           terraform_wrapper: false
+      - name: Unit tests
+        run: |
+          go test -v ./...
       - name: TF acceptance tests
         timeout-minutes: 10
         env:

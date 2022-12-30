@@ -1,6 +1,6 @@
 provider_installation {
   dev_overrides {
-    "registry.terraform.io/form3tech-oss/githubipallowlist" = "/Users/patrykzmigrodzki/go/bin"
+    "registry.terraform.io/form3tech-oss/githubipallowlist" = "~/go/bin"
   }
 
   direct {}

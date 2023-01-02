@@ -11,7 +11,7 @@ import (
 //
 //nolint:unused // used in acctests
 var providerFactories = map[string]func() (*schema.Provider, error){
-	"scaffolding": func() (*schema.Provider, error) {
+	"githubipallowlist": func() (*schema.Provider, error) {
 		return New("dev")(), nil
 	},
 }

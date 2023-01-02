@@ -17,6 +17,35 @@ A Terraform provider for managing GitHub's IP allow list.
 $ go install
 ```
 
+This enables verifying your locally built provider using examples available in the `examples/` directory.
+Note that you will first need to configure your shell to map our provider to the local build:
+
+```sh
+export TF_CLI_CONFIG_FILE=path/to/project/examples/dev.tfrc
+```
+
+An example file is available in our `examples` directory and resembles:
+
+```hcl
+provider_installation {
+  dev_overrides {
+    "from3tech-oss/githubipallowlist" = "~/go/bin/"
+  }
+  direct {}
+}
+```
+
+See https://www.terraform.io/docs/cli/config/config-file.html for more details.
+
+When running examples, you should spot the following warning to confirm you are using a local build:
+
+```console
+Warning: Provider development overrides are in effect
+
+The following provider development overrides are set in the CLI configuration:
+ - from3tech-oss/githubipallowlist in /Users/somegithuuser/go/bin
+```
+
 ## Adding Dependencies
 
 This provider uses [Go modules](https://github.com/golang/go/wiki/Modules).

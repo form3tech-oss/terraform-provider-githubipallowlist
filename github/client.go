@@ -208,7 +208,10 @@ func handleGraphQLResponse(res *http.Response) (*GraphQLResponse, error) {
 
 	resBytes, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, errors.Wrap(err, "response body read error")
+		return nil, ErrorWithStatusCode{
+			StatusCode: res.StatusCode,
+			message:    fmt.Sprintf("response body read error: %s", err.Error()),
+		}
 	}
 
 	if res.StatusCode >= 300 {
@@ -221,7 +224,10 @@ func handleGraphQLResponse(res *http.Response) (*GraphQLResponse, error) {
 	gqlRes := new(GraphQLResponse)
 	err = json.Unmarshal(resBytes, gqlRes)
 	if err != nil {
-		return nil, errors.Wrap(err, "response unmarshalling error")
+		return nil, ErrorWithStatusCode{
+			StatusCode: res.StatusCode,
+			message:    fmt.Sprintf("response unmarshalling error: %s", err.Error()),
+		}
 	}
 
 	return gqlRes, err

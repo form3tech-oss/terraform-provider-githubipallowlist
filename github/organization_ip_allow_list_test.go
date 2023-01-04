@@ -5,13 +5,39 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"net/http"
+	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 const getOrganizationIDResponseTemplate = `{
     "data": {
         "organization": {
             "id": "%s"
+        }
+    }
+}`
+
+const getOrganizationIPAllowListEntriesResponseTemplate = `{
+    "data": {
+        "organization": {
+            "ipAllowListEntries": {
+                "nodes": [
+                    {
+                        "allowListValue": "%s",
+                        "isActive": %t,
+                        "name": "%s",
+                        "id": "%s",
+                        "createdAt": "%s",
+                        "updatedAt": "%s"
+                    }
+                ],
+                "pageInfo": {
+                    "hasNextPage": %t,
+                    "startCursor": "abc",
+                    "endCursor": "abc"
+                }
+            }
         }
     }
 }`
@@ -43,6 +69,82 @@ func TestGetOrganizationIDWithFailingServer(t *testing.T) {
 	assert.Equal(t, retrievedOrganizationID, "")
 }
 
+func TestGetOrganizationIPAllowListEntriesWithPagedResponseOneEntryPerPage(t *testing.T) {
+	tests := []struct {
+		expectedEntries []*IPAllowListEntry
+	}{
+		{
+			expectedEntries: []*IPAllowListEntry{
+				{
+					ID:             "some-id",
+					CreatedAt:      truncateToGitHubPrecision(time.Now()),
+					UpdatedAt:      truncateToGitHubPrecision(time.Now()),
+					AllowListValue: "1.2.3.4/32",
+					IsActive:       true,
+					Name:           "Managed by Terraform",
+				}},
+		},
+		{
+			expectedEntries: []*IPAllowListEntry{
+				{
+					ID:             "some-id1",
+					CreatedAt:      truncateToGitHubPrecision(time.Now()),
+					UpdatedAt:      truncateToGitHubPrecision(time.Now()),
+					AllowListValue: "1.2.3.4/32",
+					IsActive:       false,
+					Name:           "Managed by Terraform",
+				},
+				{
+					ID:             "some-id2",
+					CreatedAt:      truncateToGitHubPrecision(time.Now()),
+					UpdatedAt:      truncateToGitHubPrecision(time.Now()),
+					AllowListValue: "1.2.3.5/32",
+					IsActive:       true,
+					Name:           "Managed by Terraform",
+				}},
+		},
+	}
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("number of pages:%d", len(test.expectedEntries)), func(t *testing.T) {
+			// given
+			gitHubGraphQLAPIMock := serverWithOneEntryPerPageGetOrganizationIPAllowListEntries(test.expectedEntries)
+			client := NewAuthenticatedGitHubClient(context.TODO(), "", WithGraphQLAPIURL(gitHubGraphQLAPIMock.URL))
+
+			// when
+			entries, err := client.GetOrganizationIPAllowListEntries(context.TODO(), "some organization")
+
+			// then
+			assert.NoError(t, err)
+			assert.Len(t, entries, len(test.expectedEntries))
+			assert.Equal(t, test.expectedEntries, entries)
+		})
+	}
+}
+
 func getOrganizationIDResponseWith(expectedOrganizationID string) string {
 	return fmt.Sprintf(getOrganizationIDResponseTemplate, expectedOrganizationID)
+}
+
+func getOrganizationIPAllowListEntriesResponseLastPageWith(expectedEntry IPAllowListEntry) string {
+	hasNextPage := false
+	return fmt.Sprintf(getOrganizationIPAllowListEntriesResponseTemplate, expectedEntry.AllowListValue, expectedEntry.IsActive, expectedEntry.Name, expectedEntry.ID, expectedEntry.CreatedAt.Format(gitHubTimeFormat), expectedEntry.UpdatedAt.Format(gitHubTimeFormat), hasNextPage)
+}
+
+func getOrganizationIPAllowListEntriesResponseWithNextPageAnd(expectedEntry IPAllowListEntry) string {
+	hasNextPage := true
+	return fmt.Sprintf(getOrganizationIPAllowListEntriesResponseTemplate, expectedEntry.AllowListValue, expectedEntry.IsActive, expectedEntry.Name, expectedEntry.ID, expectedEntry.CreatedAt.Format(gitHubTimeFormat), expectedEntry.UpdatedAt.Format(gitHubTimeFormat), hasNextPage)
+}
+
+func serverWithOneEntryPerPageGetOrganizationIPAllowListEntries(expectedEntries []*IPAllowListEntry) *httptest.Server {
+	gitHubGraphQLAPIMock, _ := serverReturningConsecutiveResponses(pagedGetOrganizationIPAllowListEntriesResponses(expectedEntries)...)
+	return gitHubGraphQLAPIMock
+}
+
+func pagedGetOrganizationIPAllowListEntriesResponses(expectedEntries []*IPAllowListEntry) []string {
+	pagedResponses := make([]string, len(expectedEntries)-1, len(expectedEntries))
+	for i := range pagedResponses {
+		pagedResponses[i] = getOrganizationIPAllowListEntriesResponseWithNextPageAnd(*expectedEntries[i])
+	}
+	lastPage := getOrganizationIPAllowListEntriesResponseLastPageWith(*expectedEntries[len(expectedEntries)-1])
+	return append(pagedResponses, lastPage)
 }

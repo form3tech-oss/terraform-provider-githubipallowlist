@@ -3,7 +3,6 @@ package github
 import (
 	"context"
 	"fmt"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
@@ -14,7 +13,7 @@ import (
 )
 
 const (
-	someGetOrganizationIPAllowListEntries = `{
+	someGetOrganizationIPAllowListEntriesResponse = `{
     "data": {
         "organization": {
             "ipAllowListEntries": {
@@ -36,7 +35,7 @@ const (
     }
 }`
 
-	pagedGetOrganizationIPAllowListEntries = `{
+	pagedGetOrganizationIPAllowListEntriesResponse = `{
     "data": {
         "organization": {
             "ipAllowListEntries": {
@@ -226,28 +225,21 @@ func serverWaitingWithWritingAResponseUntilAllRequestsAreReceived(expectedReques
 		receivedRequests.Done()
 		receivedRequests.Wait()
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(someGetOrganizationIPAllowListEntries))
+		_, _ = w.Write([]byte(someGetOrganizationIPAllowListEntriesResponse))
 	}))
 	return testServer, &receivedRequests
 }
 
 func serverWithPagedResponse(numberOfPagesToReturn int64) (*httptest.Server, *atomic.Int64) {
-	if numberOfPagesToReturn < 2 {
-		panic(errors.New("numberOfPagesToReturn must be at least 2"))
+	return serverReturningConsecutiveResponses(generatePagedGetOrganizationIPAllowListEntriesResponses(int(numberOfPagesToReturn))...)
+}
+
+func generatePagedGetOrganizationIPAllowListEntriesResponses(numberOfPagesToReturn int) []string {
+	pagedResponses := make([]string, numberOfPagesToReturn-1, numberOfPagesToReturn)
+	for i := range pagedResponses {
+		pagedResponses[i] = pagedGetOrganizationIPAllowListEntriesResponse
 	}
-	var noRequests atomic.Int64
-	noRequests.Store(0)
-	gitHubGraphQLAPIMock := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if noRequests.Load() < numberOfPagesToReturn-1 {
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(pagedGetOrganizationIPAllowListEntries))
-		} else {
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(someGetOrganizationIPAllowListEntries))
-		}
-		noRequests.Add(1)
-	}))
-	return gitHubGraphQLAPIMock, &noRequests
+	return append(pagedResponses, someGetOrganizationIPAllowListEntriesResponse)
 }
 
 func serverReturningGrapeQLError(errorMessage string) *httptest.Server {

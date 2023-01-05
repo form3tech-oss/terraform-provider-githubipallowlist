@@ -68,7 +68,9 @@ func resourceGitHubIPAllowListEntryRead(ctx context.Context, d *schema.ResourceD
 	id := d.Id()
 	entry := firstEntryByID(entries, id)
 	if entry == nil {
-		return diag.Errorf("githubipallowlist_ip_allow_list_entry not found id=%s", id)
+		tflog.Warn(ctx, "githubipallowlist_ip_allow_list_entry not found", map[string]interface{}{"id": id})
+		d.SetId("")
+		return nil
 	}
 	err = d.Set(isActiveKey, entry.IsActive)
 	if err != nil {
@@ -84,7 +86,7 @@ func resourceGitHubIPAllowListEntryRead(ctx context.Context, d *schema.ResourceD
 
 func firstEntryByID(entries []*github.IPAllowListEntry, id string) *github.IPAllowListEntry {
 	for _, e := range entries {
-		if e.ID == id {
+		if e != nil && e.ID == id {
 			return e
 		}
 	}

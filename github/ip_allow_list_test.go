@@ -9,10 +9,6 @@ import (
 	"time"
 )
 
-const (
-	timeFormat = "2006-01-02T15:04:05Z"
-)
-
 const createEntryResponseTemplate = `
 {
     "data": {
@@ -64,6 +60,6 @@ func TestCreateIPAllowListEntryWithFailingServer(t *testing.T) {
 }
 
 func createEntryResponseWith(expectedEntry IPAllowListEntry) string {
-	res := fmt.Sprintf(createEntryResponseTemplate, expectedEntry.ID, expectedEntry.CreatedAt.Format(timeFormat), expectedEntry.UpdatedAt.Format(timeFormat), expectedEntry.AllowListValue, expectedEntry.IsActive, expectedEntry.Name)
+	res := fmt.Sprintf(createEntryResponseTemplate, expectedEntry.ID, expectedEntry.CreatedAt.Format(gitHubTimeFormat), expectedEntry.UpdatedAt.Format(gitHubTimeFormat), expectedEntry.AllowListValue, expectedEntry.IsActive, expectedEntry.Name)
 	return res
 }

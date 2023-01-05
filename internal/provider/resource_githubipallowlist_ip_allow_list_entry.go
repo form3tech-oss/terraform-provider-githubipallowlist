@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"github.com/form3tech-oss/terraform-provider-githubipallowlist/github"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -9,7 +10,9 @@ import (
 )
 
 const (
-	entryDescription = "Managed by Terraform"
+	entryDescription  = "Managed by Terraform"
+	isActiveKey       = "is_active"
+	allowListValueKey = "allow_list_value"
 )
 
 func resourceGitHubIPAllowListEntry() *schema.Resource {
@@ -22,12 +25,12 @@ func resourceGitHubIPAllowListEntry() *schema.Resource {
 		DeleteContext: resourceGitHubIPAllowListEntryDelete,
 
 		Schema: map[string]*schema.Schema{
-			"is_active": {
+			isActiveKey: {
 				Description: "Whether the entry is currently active.",
 				Type:        schema.TypeBool,
 				Required:    true,
 			},
-			"allow_list_value": {
+			allowListValueKey: {
 				Description: "A single IP address or range of IP addresses in CIDR notation.",
 				Type:        schema.TypeString,
 				Required:    true,
@@ -39,8 +42,8 @@ func resourceGitHubIPAllowListEntry() *schema.Resource {
 func resourceGitHubIPAllowListEntryCreate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*apiClient)
 
-	isActive := d.Get("is_active").(bool)
-	value := d.Get("allow_list_value").(string)
+	isActive := d.Get(isActiveKey).(bool)
+	value := d.Get(allowListValueKey).(string)
 
 	entry, err := client.github.CreateIPAllowListEntry(ctx, client.ownerID, entryDescription, value, isActive)
 	if err != nil {
@@ -55,10 +58,39 @@ func resourceGitHubIPAllowListEntryCreate(ctx context.Context, d *schema.Resourc
 }
 
 func resourceGitHubIPAllowListEntryRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	// use the meta value to retrieve your client from the provider configure method
-	// client := meta.(*apiClient)
+	client := meta.(*apiClient)
 
-	return diag.Errorf("not implemented")
+	entries, err := client.github.GetOrganizationIPAllowListEntries(ctx, client.organization)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	id := d.Id()
+	entry := firstEntryByID(entries, id)
+	if entry == nil {
+		tflog.Warn(ctx, "githubipallowlist_ip_allow_list_entry not found", map[string]interface{}{"id": id})
+		d.SetId("")
+		return nil
+	}
+	err = d.Set(isActiveKey, entry.IsActive)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	err = d.Set(allowListValueKey, entry.AllowListValue)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	return nil
+}
+
+func firstEntryByID(entries []*github.IPAllowListEntry, id string) *github.IPAllowListEntry {
+	for _, e := range entries {
+		if e != nil && e.ID == id {
+			return e
+		}
+	}
+	return nil
 }
 
 func resourceGitHubIPAllowListEntryUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {

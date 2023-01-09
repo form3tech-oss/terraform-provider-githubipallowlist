@@ -45,6 +45,28 @@ type CreateIPAllowListEntryMutationResponse struct {
 	} `json:"createIpAllowListEntry"`
 }
 
+const updateIPAllowListEntryMutation = `
+mutation UpdateIpAllowListEntry($entryId: ID!, $name: String!, $value: String!, $isActive: Boolean!) {
+  updateIpAllowListEntry(
+    input: {ipAllowListEntryId: $entryId, allowListValue: $value, isActive: $isActive, name: $name}
+  ) {
+      ipAllowListEntry {
+      allowListValue
+      createdAt
+      id
+      isActive
+      name
+      updatedAt
+    }
+  }
+}`
+
+type UpdateIPAllowListEntryMutationResponse struct {
+	UpdateIPAllowListEntry struct {
+		IPAllowListEntry IPAllowListEntry `json:"ipAllowListEntry"`
+	} `json:"updateIpAllowListEntry"`
+}
+
 // CreateIPAllowListEntry uses createIpAllowListEntry GraphQL mutation to create a new IP allow list entry for a given ownerID (organization or enterprise).
 // Returns the newly created entry.
 func (c *Client) CreateIPAllowListEntry(ctx context.Context, ownerID string, name string, value CIDR, isActive bool) (*IPAllowListEntry, error) {
@@ -66,4 +88,22 @@ func (c *Client) CreateIPAllowListEntry(ctx context.Context, ownerID string, nam
 	}
 
 	return &resData.CreateIPAllowListEntry.IPAllowListEntry, nil
+}
+
+func (c *Client) UpdateIPAllowListEntry(ctx context.Context, entryID string, params IPAllowListEntryParameters) (*IPAllowListEntry, error) {
+	reqData := GraphQLRequest{
+		Query: updateIPAllowListEntryMutation,
+		Variables: map[string]any{
+			"entryId":  entryID,
+			"name":     params.Name,
+			"value":    params.Value,
+			"isActive": params.IsActive,
+		}}
+
+	resData, err := doRequest[UpdateIPAllowListEntryMutationResponse](ctx, c, reqData)
+	if err != nil {
+		return nil, errors.Wrap(err, "UpdateIPAllowListEntry error")
+	}
+
+	return &resData.UpdateIPAllowListEntry.IPAllowListEntry, nil
 }

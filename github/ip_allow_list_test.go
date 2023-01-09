@@ -25,6 +25,39 @@ const createEntryResponseTemplate = `
     }
 }`
 
+const deleteEntryResponseTemplate = `
+{
+    "data": {
+        "deleteIpAllowListEntry": {
+            "ipAllowListEntry": {
+                "id": "%s"
+            }
+        }
+    }
+}`
+
+const deleteEntryResponseForMissingEntry = `
+{
+    "data": {
+        "deleteIpAllowListEntry": null
+    },
+    "errors": [
+        {
+            "type": "NOT_FOUND",
+            "path": [
+                "deleteIpAllowListEntry"
+            ],
+            "locations": [
+                {
+                    "line": 2,
+                    "column": 3
+                }
+            ],
+            "message": "Could not resolve to a node with the global id of 'abc-123'."
+        }
+    ]
+}`
+
 func TestCreateIPAllowListEntry(t *testing.T) {
 	// given
 	expectedEntry := IPAllowListEntry{
@@ -59,7 +92,55 @@ func TestCreateIPAllowListEntryWithFailingServer(t *testing.T) {
 	assert.Nil(t, createdEntry)
 }
 
+func TestDeleteIPAllowListEntry(t *testing.T) {
+	// given
+	expectedEntryID := "expected-entry-id"
+	gitHubGraphQLAPIMock := serverReturning(deleteEntryResponseWith(expectedEntryID))
+	client := NewAuthenticatedGitHubClient(context.TODO(), "", WithGraphQLAPIURL(gitHubGraphQLAPIMock.URL))
+
+	// when
+	deletedEntryID, err := client.DeleteIPAllowListEntry(context.TODO(), expectedEntryID)
+
+	// then
+	assert.NoError(t, err)
+	assert.Equal(t, expectedEntryID, deletedEntryID)
+}
+
+func TestDeleteIPAllowListEntryWithMissingEntry(t *testing.T) {
+	// given
+	gitHubGraphQLAPIMock := serverReturning(deleteEntryResponseForMissingEntry)
+	client := NewAuthenticatedGitHubClient(context.TODO(), "", WithGraphQLAPIURL(gitHubGraphQLAPIMock.URL))
+
+	// when
+	deletedEntryID, err := client.DeleteIPAllowListEntry(context.TODO(), "some-entry-id")
+
+	// then
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "Could not resolve to a node with the global id of 'abc-123'.")
+	assert.Empty(t, deletedEntryID)
+}
+
+func TestDeleteIPAllowListEntryWithFailingServer(t *testing.T) {
+	// given
+	expectedStatusCode := http.StatusInternalServerError
+	gitHubGraphQLAPIMock := serverReturningAnEmptyResponseWith(expectedStatusCode)
+	client := NewAuthenticatedGitHubClient(context.TODO(), "", WithGraphQLAPIURL(gitHubGraphQLAPIMock.URL))
+
+	// when
+	deletedEntryID, err := client.DeleteIPAllowListEntry(context.TODO(), "some-entry-id")
+
+	// then
+	var target ErrorWithStatusCode
+	assert.ErrorAs(t, err, &target)
+	assert.Equal(t, target.StatusCode, expectedStatusCode)
+	assert.Empty(t, deletedEntryID)
+}
+
 func createEntryResponseWith(expectedEntry IPAllowListEntry) string {
 	res := fmt.Sprintf(createEntryResponseTemplate, expectedEntry.ID, expectedEntry.CreatedAt.Format(gitHubTimeFormat), expectedEntry.UpdatedAt.Format(gitHubTimeFormat), expectedEntry.AllowListValue, expectedEntry.IsActive, expectedEntry.Name)
 	return res
+}
+
+func deleteEntryResponseWith(expectedEntryID string) string {
+	return fmt.Sprintf(deleteEntryResponseTemplate, expectedEntryID)
 }

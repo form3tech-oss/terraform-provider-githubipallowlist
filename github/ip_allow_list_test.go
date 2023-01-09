@@ -81,14 +81,17 @@ func TestCreateIPAllowListEntry(t *testing.T) {
 
 func TestCreateIPAllowListEntryWithFailingServer(t *testing.T) {
 	// given
-	gitHubGraphQLAPIMock := serverReturningAnEmptyResponseWith(http.StatusInternalServerError)
+	expectedStatusCode := http.StatusInternalServerError
+	gitHubGraphQLAPIMock := serverReturningAnEmptyResponseWith(expectedStatusCode)
 	client := NewAuthenticatedGitHubClient(context.TODO(), "", WithGraphQLAPIURL(gitHubGraphQLAPIMock.URL))
 
 	// when
 	createdEntry, err := client.CreateIPAllowListEntry(context.TODO(), "some owner", "some name", "some value", true)
 
 	// then
-	assert.Error(t, err)
+	var target ErrorWithStatusCode
+	assert.ErrorAs(t, err, &target)
+	assert.Equal(t, target.StatusCode, expectedStatusCode)
 	assert.Nil(t, createdEntry)
 }
 

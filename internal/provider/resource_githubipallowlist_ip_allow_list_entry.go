@@ -52,7 +52,7 @@ func resourceGitHubIPAllowListEntryCreate(ctx context.Context, d *schema.Resourc
 
 	d.SetId(entry.ID)
 
-	tflog.Trace(ctx, "created a resource githubipallowlist_ip_allow_list_entry")
+	tflog.Trace(ctx, "created a resource githubipallowlist_ip_allow_list_entry", map[string]interface{}{"id": entry.ID})
 
 	return nil
 }

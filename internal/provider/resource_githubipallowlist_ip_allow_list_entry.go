@@ -45,7 +45,7 @@ func resourceGitHubIPAllowListEntryCreate(ctx context.Context, d *schema.Resourc
 	isActive := d.Get(isActiveKey).(bool)
 	value := d.Get(allowListValueKey).(string)
 
-	entry, err := client.github.CreateIPAllowListEntry(ctx, client.ownerID, entryDescription, value, isActive)
+	entry, err := client.github.CreateIPAllowListEntry(ctx, client.ownerID, entryDescription, github.CIDR(value), isActive)
 	if err != nil {
 		diag.FromErr(err)
 	}

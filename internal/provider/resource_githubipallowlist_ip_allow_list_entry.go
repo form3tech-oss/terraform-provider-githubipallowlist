@@ -45,7 +45,7 @@ func resourceGitHubIPAllowListEntryCreate(ctx context.Context, d *schema.Resourc
 	isActive := d.Get(isActiveKey).(bool)
 	value := d.Get(allowListValueKey).(string)
 
-	entry, err := client.github.CreateIPAllowListEntry(ctx, client.ownerID, entryDescription, value, isActive)
+	entry, err := client.github.CreateIPAllowListEntry(ctx, client.ownerID, entryDescription, github.CIDR(value), isActive)
 	if err != nil {
 		diag.FromErr(err)
 	}
@@ -94,10 +94,35 @@ func firstEntryByID(entries []*github.IPAllowListEntry, id string) *github.IPAll
 }
 
 func resourceGitHubIPAllowListEntryUpdate(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	// use the meta value to retrieve your client from the provider configure method
-	// client := meta.(*apiClient)
+	client := meta.(*apiClient)
 
-	return diag.Errorf("not implemented")
+	id := d.Id()
+	isActive := d.Get(isActiveKey).(bool)
+	value := d.Get(allowListValueKey).(string)
+
+	entry, err := client.github.UpdateIPAllowListEntry(ctx, id,
+		github.IPAllowListEntryParameters{
+			Name:     entryDescription,
+			Value:    github.CIDR(value),
+			IsActive: isActive,
+		})
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	err = d.Set(isActiveKey, entry.IsActive)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	err = d.Set(allowListValueKey, entry.AllowListValue)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	d.SetId(entry.ID)
+
+	tflog.Trace(ctx, "updated a resource githubipallowlist_ip_allow_list_entry", map[string]interface{}{"id": entry.ID})
+
+	return nil
 }
 
 func resourceGitHubIPAllowListEntryDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {

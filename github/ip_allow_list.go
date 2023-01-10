@@ -31,6 +31,24 @@ mutation CreateIpAllowListEntry($ownerId: ID!, $name: String = "", $value: Strin
   }
 }`
 
+const deleteIPAllowListEntryMutation = `
+mutation DeleteIpAllowListEntry($entryId: ID!) {
+  deleteIpAllowListEntry(input: {ipAllowListEntryId: $entryId}) {
+    ipAllowListEntry {
+      id
+    }
+  }
+}
+`
+
+type DeleteUpAllowListEntryMutationResponse struct {
+	DeleteIpAllowListEntry struct {
+		IpAllowListEntry struct {
+			ID string `json:"id"`
+		} `json:"ipAllowListEntry"`
+	} `json:"deleteIpAllowListEntry"`
+}
+
 type CreateIPAllowListEntryMutationResponse struct {
 	CreateIPAllowListEntry struct {
 		IPAllowListEntry IPAllowListEntry `json:"ipAllowListEntry"`
@@ -58,4 +76,21 @@ func (c *Client) CreateIPAllowListEntry(ctx context.Context, ownerID string, nam
 	}
 
 	return &resData.CreateIPAllowListEntry.IPAllowListEntry, nil
+}
+
+// DeleteIPAllowListEntry uses deleteIpAllowListEntry GraphQL mutation to delete an IP allow list entry with a given entryID.
+// Returns entryID of the deleted entry.
+func (c *Client) DeleteIPAllowListEntry(ctx context.Context, entryID string) (string, error) {
+	reqData := GraphQLRequest{
+		Query: deleteIPAllowListEntryMutation,
+		Variables: map[string]any{
+			"entryId": entryID,
+		}}
+
+	resData, err := doRequest[DeleteUpAllowListEntryMutationResponse](ctx, c, reqData)
+	if err != nil {
+		return "", errors.Wrap(err, "DeleteIPAllowListEntry error")
+	}
+
+	return resData.DeleteIpAllowListEntry.IpAllowListEntry.ID, nil
 }

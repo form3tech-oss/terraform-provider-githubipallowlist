@@ -52,7 +52,7 @@ func resourceGitHubIPAllowListEntryCreate(ctx context.Context, d *schema.Resourc
 
 	d.SetId(entry.ID)
 
-	tflog.Trace(ctx, "created a resource githubipallowlist_ip_allow_list_entry")
+	tflog.Trace(ctx, "created a resource githubipallowlist_ip_allow_list_entry", map[string]interface{}{"id": entry.ID})
 
 	return nil
 }
@@ -126,8 +126,13 @@ func resourceGitHubIPAllowListEntryUpdate(ctx context.Context, d *schema.Resourc
 }
 
 func resourceGitHubIPAllowListEntryDelete(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
-	// use the meta value to retrieve your client from the provider configure method
-	// client := meta.(*apiClient)
+	client := meta.(*apiClient)
 
-	return diag.Errorf("not implemented")
+	deletedEntryID, err := client.github.DeleteIPAllowListEntry(ctx, d.Id())
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	tflog.Trace(ctx, "deleted a resource githubipallowlist_ip_allow_list_entry", map[string]interface{}{"id": deletedEntryID})
+
+	return nil
 }

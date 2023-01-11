@@ -109,8 +109,8 @@ func TestCreateIPAllowListEntry(t *testing.T) {
 		AllowListValue: "1.2.3.4/32",
 		IsActive:       true,
 		Name:           "some name",
-		CreatedAt:      time.Now().UTC().Truncate(time.Second),
-		UpdatedAt:      time.Now().UTC().Truncate(time.Second),
+		CreatedAt:      truncateToGitHubPrecision(time.Now()),
+		UpdatedAt:      truncateToGitHubPrecision(time.Now()),
 	}
 	gitHubGraphQLAPIMock := serverReturning(createEntryResponseWith(expectedEntry))
 	client := NewAuthenticatedGitHubClient(context.TODO(), "", WithGraphQLAPIURL(gitHubGraphQLAPIMock.URL))
@@ -187,8 +187,8 @@ func TestUpdateIPAllowListEntry(t *testing.T) {
 	// given
 	expectedEntry := IPAllowListEntry{
 		ID:             "some-entry-id",
-		CreatedAt:      time.Now().UTC().Truncate(time.Second),
-		UpdatedAt:      time.Now().UTC().Truncate(time.Second),
+		CreatedAt:      truncateToGitHubPrecision(time.Now()),
+		UpdatedAt:      truncateToGitHubPrecision(time.Now()),
 		AllowListValue: "1.2.3.4/32",
 		IsActive:       true,
 		Name:           "some name",

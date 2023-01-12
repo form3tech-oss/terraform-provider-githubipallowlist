@@ -125,6 +125,8 @@ func (c *Client) DeleteIPAllowListEntry(ctx context.Context, entryID string) (st
 	return resData.DeleteIpAllowListEntry.IpAllowListEntry.ID, nil
 }
 
+// UpdateIPAllowListEntry uses updateIpAllowListEntry GraphQL mutation to set attributes an IP allow list entry with a given entryID to params.
+// Returns the updated entry.
 func (c *Client) UpdateIPAllowListEntry(ctx context.Context, entryID string, params IPAllowListEntryParameters) (*IPAllowListEntry, error) {
 	reqData := GraphQLRequest{
 		Query: updateIPAllowListEntryMutation,

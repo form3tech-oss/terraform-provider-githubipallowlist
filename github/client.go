@@ -11,6 +11,7 @@ import (
 	"golang.org/x/sync/semaphore"
 	"io"
 	"net/http"
+	"sync"
 )
 
 const (
@@ -57,12 +58,17 @@ type Client struct {
 	concurrencySemaphore *semaphore.Weighted
 	url                  string
 	headers              map[string]string
+
+	cacheEntries                  bool
+	organizationEntriesCache      map[string][]*IPAllowListEntry
+	organizationEntriesCacheMutex *sync.Mutex
 }
 
 type ClientOptions struct {
 	concurrency   int64
 	graphQLAPIURL string
 	headers       map[string]string
+	cacheEntries  bool
 }
 
 type ClientOption func(options *ClientOptions)
@@ -81,17 +87,25 @@ func NewGitHubClient(httpClient *http.Client, opts ...ClientOption) *Client {
 	options := &ClientOptions{
 		concurrency:   int64(1),
 		graphQLAPIURL: defaultAPIURL,
+		cacheEntries:  true,
 	}
 	for _, opt := range opts {
 		opt(options)
 	}
 
-	return &Client{
+	c := &Client{
 		http:                 httpClient,
 		concurrencySemaphore: semaphore.NewWeighted(options.concurrency),
 		url:                  options.graphQLAPIURL,
 		headers:              options.headers,
 	}
+
+	if options.cacheEntries {
+		c.cacheEntries = true
+		c.organizationEntriesCache = make(map[string][]*IPAllowListEntry, 128)
+		c.organizationEntriesCacheMutex = &sync.Mutex{}
+	}
+	return c
 }
 
 // WithConcurrency determines maximum number of concurrent requests to the GitHub GraphQL API. Used to control rate limiting.
@@ -115,6 +129,22 @@ func WithGraphQLAPIURL(graphQLAPIURL string) ClientOption {
 func WithHeaders(headers map[string]string) ClientOption {
 	return func(options *ClientOptions) {
 		options.headers = headers
+	}
+}
+
+// WithEntriesCaching enables an entries cache. It reduces number of calls to GitHub's GraphQL API reducing rate limiting pressure.
+func WithEntriesCaching() ClientOption {
+	return func(options *ClientOptions) {
+		options.cacheEntries = true
+	}
+}
+
+// WithoutEntriesCaching disables an entries cache.
+// Without caching client will perform multiple calls to GitHub's GraphQL API for each entry listing function call like GetOrganizationIPAllowListEntries.
+// Also, it might put pressure on yours GitHub rate limit.
+func WithoutEntriesCaching() ClientOption {
+	return func(options *ClientOptions) {
+		options.cacheEntries = false
 	}
 }
 

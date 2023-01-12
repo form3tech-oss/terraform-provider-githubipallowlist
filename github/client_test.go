@@ -145,7 +145,7 @@ func TestClientCanExecuteRequestsConcurrently(t *testing.T) {
 		t.Run(fmt.Sprintf("Concurrency:%d", test.concurrentRequests), func(t *testing.T) {
 			// given
 			gitHubGraphQLAPIMock, receivedRequests := serverWaitingWithWritingAResponseUntilAllRequestsAreReceived(test.concurrentRequests)
-			client := NewAuthenticatedGitHubClient(context.TODO(), "", WithConcurrency(int64(test.concurrentRequests)), WithGraphQLAPIURL(gitHubGraphQLAPIMock.URL))
+			client := NewAuthenticatedGitHubClient(context.TODO(), "", WithConcurrency(int64(test.concurrentRequests)), WithGraphQLAPIURL(gitHubGraphQLAPIMock.URL), WithoutEntriesCaching())
 
 			// when
 			for i := 0; i < test.concurrentRequests; i++ {
@@ -179,7 +179,7 @@ func TestClientCanNotExceedMaxConcurrentRequests(t *testing.T) {
 		t.Run(fmt.Sprintf("Concurrency:%d", test.concurrentRequests), func(t *testing.T) {
 			// given
 			gitHubGraphQLAPIMock, receivedRequests := serverWaitingWithWritingAResponseUntilAllRequestsAreReceived(test.concurrentRequests + 1)
-			client := NewAuthenticatedGitHubClient(context.TODO(), "", WithConcurrency(int64(test.concurrentRequests)), WithGraphQLAPIURL(gitHubGraphQLAPIMock.URL))
+			client := NewAuthenticatedGitHubClient(context.TODO(), "", WithConcurrency(int64(test.concurrentRequests)), WithGraphQLAPIURL(gitHubGraphQLAPIMock.URL), WithoutEntriesCaching())
 
 			// when
 			for i := 0; i < test.concurrentRequests; i++ {

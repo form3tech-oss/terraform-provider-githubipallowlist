@@ -121,6 +121,66 @@ func TestGetOrganizationIPAllowListEntriesWithPagedResponseOneEntryPerPage(t *te
 	}
 }
 
+func TestGetOrganizationIPAllowListEntriesWithEntriesCachingCallsAPIOnlyOnce(t *testing.T) {
+	// given
+	expectedEntry := IPAllowListEntry{
+		ID:             "some-id",
+		CreatedAt:      truncateToGitHubPrecision(time.Now()),
+		UpdatedAt:      truncateToGitHubPrecision(time.Now()),
+		AllowListValue: "1.2.3.4/32",
+		IsActive:       true,
+		Name:           "Managed by Terraform",
+	}
+	gitHubGraphQLAPIMock, receivedRequests := serverReturningConsecutiveResponses(getOrganizationIPAllowListEntriesResponseLastPageWith(expectedEntry))
+	client := NewAuthenticatedGitHubClient(context.TODO(), "", WithGraphQLAPIURL(gitHubGraphQLAPIMock.URL))
+
+	// when
+	_, _ = client.GetOrganizationIPAllowListEntries(context.TODO(), "some organization")
+	entries, err := client.GetOrganizationIPAllowListEntries(context.TODO(), "some organization")
+
+	// then
+	assert.NoError(t, err)
+	assert.Equal(t, expectedEntry, *entries[0])
+	assert.Equal(t, int64(1), receivedRequests.Load())
+}
+
+func TestGetOrganizationIPAllowListEntriesWithEntriesCachingDoesNotExecuteCallsConcurrently(t *testing.T) {
+	tests := []struct {
+		concurrentRequests int
+	}{
+		{1},
+		{2},
+		{10},
+		{100},
+	}
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("Concurrency:%d", test.concurrentRequests), func(t *testing.T) {
+			// given
+			gitHubGraphQLAPIMock, receivedRequests := serverWaitingWithWritingAResponseUntilAllRequestsAreReceived(2)
+			client := NewAuthenticatedGitHubClient(context.TODO(), "", WithConcurrency(int64(test.concurrentRequests)), WithGraphQLAPIURL(gitHubGraphQLAPIMock.URL))
+
+			// when
+			for i := 0; i < test.concurrentRequests; i++ {
+				go func() {
+					_, _ = client.GetOrganizationIPAllowListEntries(context.TODO(), "some organisation")
+				}()
+			}
+
+			// then
+			withTimeout(
+				receivedRequests.Wait,
+				func() {
+					assert.Fail(t, "Client called the API concurrently. Received too many requests which suggests an error in client's cache concurrency control.")
+				},
+				func() {
+					receivedRequests.Done()
+				},
+				100*time.Millisecond,
+			)
+		})
+	}
+}
+
 func getOrganizationIDResponseWith(expectedOrganizationID string) string {
 	return fmt.Sprintf(getOrganizationIDResponseTemplate, expectedOrganizationID)
 }

@@ -3,13 +3,46 @@ package github
 import (
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"sync/atomic"
 	"time"
 )
 
-const (
-	gitHubTimeFormat = "2006-01-02T15:04:05Z"
-)
+const gitHubTimeFormat = "2006-01-02T15:04:05Z"
+
+const someGetOrganizationIPAllowListEntriesResponse = `{
+    "data": {
+        "organization": {
+            "ipAllowListEntries": {
+                "nodes": [
+                    {
+                        "allowListValue": "1.1.1.1",
+                        "isActive": true,
+                        "name": null,
+                        "id": "abc"
+                    }
+                ],
+                "pageInfo": {
+                    "hasNextPage": false,
+                    "startCursor": "abc",
+                    "endCursor": "abc"
+                }
+            }
+        }
+    }
+}`
+
+func serverWaitingWithWritingAResponseUntilAllRequestsAreReceived(expectedRequests int, body string) (*httptest.Server, *sync.WaitGroup) {
+	var receivedRequests sync.WaitGroup
+	receivedRequests.Add(expectedRequests)
+	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		receivedRequests.Done()
+		receivedRequests.Wait()
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(body))
+	}))
+	return testServer, &receivedRequests
+}
 
 func serverReturning(body string) *httptest.Server {
 	gitHubGraphQLAPIMock := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

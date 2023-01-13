@@ -60,7 +60,7 @@ func resourceGitHubIPAllowListEntryCreate(ctx context.Context, d *schema.Resourc
 func resourceGitHubIPAllowListEntryRead(ctx context.Context, d *schema.ResourceData, meta any) diag.Diagnostics {
 	client := meta.(*apiClient)
 
-	entries, err := client.github.GetOrganizationIPAllowListEntries(ctx, client.organization)
+	entries, err := client.getEntriesFunc(ctx, client.ownerName)
 	if err != nil {
 		return diag.FromErr(err)
 	}

@@ -28,5 +28,6 @@ provider "githubipallowlist" {
 
 - `base_url` (String) The GitHub base GraphQL API URL. Defaults to a value of a GITHUB_BASE_URL environmental variable.
 - `concurrency` (Number) Concurrency of the client. Determines maximum number of concurrent requests to the GitHub GraphQL API. Used to control rate limiting. Default: 1.
+- `enterprise` (String) The GitHub enterprise name to manage. Defaults to a value of a GITHUB_ENTERPRISE environmental variable.
 - `organization` (String) The GitHub organization name to manage. Defaults to a value of a GITHUB_ORGANIZATION environmental variable.
 - `token` (String) Personal Access Token (classic). Defaults to a value of a GITHUB_TOKEN environmental variable.

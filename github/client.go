@@ -62,6 +62,8 @@ type Client struct {
 	cacheEntries                  bool
 	organizationEntriesCache      map[string][]*IPAllowListEntry
 	organizationEntriesCacheMutex *sync.Mutex
+	enterpriseEntriesCache        map[string][]*IPAllowListEntry
+	enterpriseEntriesCacheMutex   *sync.Mutex
 }
 
 type ClientOptions struct {
@@ -102,8 +104,10 @@ func NewGitHubClient(httpClient *http.Client, opts ...ClientOption) *Client {
 
 	if options.cacheEntries {
 		c.cacheEntries = true
-		c.organizationEntriesCache = make(map[string][]*IPAllowListEntry, 128)
+		c.organizationEntriesCache = make(map[string][]*IPAllowListEntry, 8)
 		c.organizationEntriesCacheMutex = &sync.Mutex{}
+		c.enterpriseEntriesCache = make(map[string][]*IPAllowListEntry, 8)
+		c.enterpriseEntriesCacheMutex = &sync.Mutex{}
 	}
 	return c
 }

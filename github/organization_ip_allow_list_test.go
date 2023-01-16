@@ -24,10 +24,10 @@ const getOrganizationIPAllowListEntriesResponseTemplate = `{
             "ipAllowListEntries": {
                 "nodes": [
                     {
-                        "allowListValue": "%s",
-                        "isActive": %t,
-                        "name": "%s",
                         "id": "%s",
+                        "allowListValue": "%s",
+                        "name": "%s",
+                        "isActive": %t,
                         "createdAt": "%s",
                         "updatedAt": "%s"
                     }
@@ -58,14 +58,17 @@ func TestGetOrganizationID(t *testing.T) {
 
 func TestGetOrganizationIDWithFailingServer(t *testing.T) {
 	// given
-	gitHubGraphQLAPIMock := serverReturningAnEmptyResponseWith(http.StatusInternalServerError)
+	expectedStatusCode := http.StatusInternalServerError
+	gitHubGraphQLAPIMock := serverReturningAnEmptyResponseWith(expectedStatusCode)
 	client := NewAuthenticatedGitHubClient(context.TODO(), "", WithGraphQLAPIURL(gitHubGraphQLAPIMock.URL))
 
 	// when
 	retrievedOrganizationID, err := client.GetOrganizationID(context.TODO(), "some organization")
 
 	// then
-	assert.Error(t, err)
+	var target ErrorWithStatusCode
+	assert.ErrorAs(t, err, &target)
+	assert.Equal(t, expectedStatusCode, target.StatusCode)
 	assert.Equal(t, retrievedOrganizationID, "")
 }
 
@@ -156,7 +159,7 @@ func TestGetOrganizationIPAllowListEntriesWithEntriesCachingDoesNotExecuteCallsC
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("Concurrency:%d", test.concurrentRequests), func(t *testing.T) {
 			// given
-			gitHubGraphQLAPIMock, receivedRequests := serverWaitingWithWritingAResponseUntilAllRequestsAreReceived(2)
+			gitHubGraphQLAPIMock, receivedRequests := serverWaitingWithWritingAResponseUntilAllRequestsAreReceived(2, someGetOrganizationIPAllowListEntriesResponse)
 			client := NewAuthenticatedGitHubClient(context.TODO(), "", WithConcurrency(int64(test.concurrentRequests)), WithGraphQLAPIURL(gitHubGraphQLAPIMock.URL))
 
 			// when
@@ -187,12 +190,12 @@ func getOrganizationIDResponseWith(expectedOrganizationID string) string {
 
 func getOrganizationIPAllowListEntriesResponseLastPageWith(expectedEntry IPAllowListEntry) string {
 	hasNextPage := false
-	return fmt.Sprintf(getOrganizationIPAllowListEntriesResponseTemplate, expectedEntry.AllowListValue, expectedEntry.IsActive, expectedEntry.Name, expectedEntry.ID, expectedEntry.CreatedAt.Format(gitHubTimeFormat), expectedEntry.UpdatedAt.Format(gitHubTimeFormat), hasNextPage)
+	return fmt.Sprintf(getOrganizationIPAllowListEntriesResponseTemplate, expectedEntry.ID, expectedEntry.AllowListValue, expectedEntry.Name, expectedEntry.IsActive, expectedEntry.CreatedAt.Format(gitHubTimeFormat), expectedEntry.UpdatedAt.Format(gitHubTimeFormat), hasNextPage)
 }
 
 func getOrganizationIPAllowListEntriesResponseWithNextPageAnd(expectedEntry IPAllowListEntry) string {
 	hasNextPage := true
-	return fmt.Sprintf(getOrganizationIPAllowListEntriesResponseTemplate, expectedEntry.AllowListValue, expectedEntry.IsActive, expectedEntry.Name, expectedEntry.ID, expectedEntry.CreatedAt.Format(gitHubTimeFormat), expectedEntry.UpdatedAt.Format(gitHubTimeFormat), hasNextPage)
+	return fmt.Sprintf(getOrganizationIPAllowListEntriesResponseTemplate, expectedEntry.ID, expectedEntry.AllowListValue, expectedEntry.Name, expectedEntry.IsActive, expectedEntry.CreatedAt.Format(gitHubTimeFormat), expectedEntry.UpdatedAt.Format(gitHubTimeFormat), hasNextPage)
 }
 
 func serverWithOneEntryPerPageGetOrganizationIPAllowListEntries(expectedEntries []*IPAllowListEntry) *httptest.Server {

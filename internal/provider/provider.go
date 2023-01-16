@@ -22,10 +22,17 @@ func New(version string) func() *schema.Provider {
 					Description: "Personal Access Token (classic). Defaults to a value of a GITHUB_TOKEN environmental variable.",
 				},
 				"organization": {
+					Type:         schema.TypeString,
+					Optional:     true,
+					DefaultFunc:  schema.EnvDefaultFunc("GITHUB_ORGANIZATION", nil),
+					Description:  "The GitHub organization name to manage. Defaults to a value of a GITHUB_ORGANIZATION environmental variable.",
+					ExactlyOneOf: []string{"organization", "enterprise"},
+				},
+				"enterprise": {
 					Type:        schema.TypeString,
 					Optional:    true,
-					DefaultFunc: schema.EnvDefaultFunc("GITHUB_ORGANIZATION", nil),
-					Description: "The GitHub organization name to manage. Defaults to a value of a GITHUB_ORGANIZATION environmental variable.",
+					DefaultFunc: schema.EnvDefaultFunc("GITHUB_ENTERPRISE", nil),
+					Description: "The GitHub enterprise name to manage. Defaults to a value of a GITHUB_ENTERPRISE environmental variable.",
 				},
 				"base_url": {
 					Type:        schema.TypeString,
@@ -52,9 +59,10 @@ func New(version string) func() *schema.Provider {
 }
 
 type apiClient struct {
-	github       *github.Client
-	organization string
-	ownerID      string
+	github         *github.Client
+	ownerName      string
+	ownerID        string
+	getEntriesFunc func(context.Context, string) ([]*github.IPAllowListEntry, error)
 }
 
 func configure(version string, p *schema.Provider) func(context.Context, *schema.ResourceData) (any, diag.Diagnostics) {
@@ -63,6 +71,7 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 		baseURL := d.Get("base_url").(string)
 		concurrency := d.Get("concurrency").(int)
 		organization := d.Get("organization").(string)
+		enterprise := d.Get("enterprise").(string)
 
 		userAgent := p.UserAgent("terraform-provider-githubipallowlist", version)
 
@@ -73,6 +82,8 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 		)
 
 		var ownerID string
+		var ownerName string
+		var getEntriesFunc func(context.Context, string) ([]*github.IPAllowListEntry, error)
 		if organization != "" {
 			id, err := ghc.GetOrganizationID(ctx, organization)
 
@@ -81,12 +92,27 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 			}
 
 			ownerID = id
+			ownerName = organization
+			getEntriesFunc = ghc.GetOrganizationIPAllowListEntries
+
+		}
+		if enterprise != "" {
+			id, err := ghc.GetEnterpriseID(ctx, enterprise)
+
+			if err != nil {
+				return nil, diag.FromErr(err)
+			}
+
+			ownerID = id
+			ownerName = enterprise
+			getEntriesFunc = ghc.GetEnterpriseIPAllowListEntries
 		}
 
 		return &apiClient{
-			github:       ghc,
-			organization: organization,
-			ownerID:      ownerID,
+			github:         ghc,
+			ownerName:      ownerName,
+			ownerID:        ownerID,
+			getEntriesFunc: getEntriesFunc,
 		}, nil
 	}
 }

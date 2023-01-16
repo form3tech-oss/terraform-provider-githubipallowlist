@@ -5,16 +5,16 @@ import (
 	"github.com/pkg/errors"
 )
 
-const getOrganizationIdQuery = `
+const getOrganizationIDQuery = `
 query GetOrganizationId($organizationName: String!) {
   organization(login: $organizationName) {
     id
   }
 }`
 
-type GetOrganizationIdQueryResponse struct {
+type GetOrganizationIDQueryResponse struct {
 	Organization struct {
-		Id string `json:"id"`
+		ID string `json:"id"`
 	} `json:"organization"`
 }
 
@@ -23,10 +23,10 @@ query GetOrganizationIpAllowListEntries($org: String!, $after: String) {
   organization(login: $org) {
     ipAllowListEntries(first: 100, after: $after) {
       nodes {
-        allowListValue
-        isActive
-        name
         id
+        allowListValue
+        name
+        isActive
         createdAt
         updatedAt
       }
@@ -49,7 +49,6 @@ type GetOrganizationIPAllowListQueryResponse struct {
 }
 
 // GetOrganizationIPAllowListEntries retrieves IP allow list entries for a given organizationName.
-// Method fetches all entries which might be a subject to rate limiting for allow lists with a big number of entries.
 // Returns a slice of pointers to an entry as the API returns nil for entries managed on an enterprise level.
 func (c *Client) GetOrganizationIPAllowListEntries(ctx context.Context, organizationName string) ([]*IPAllowListEntry, error) {
 	var entries []*IPAllowListEntry
@@ -100,15 +99,15 @@ func (c *Client) getOrganizationIPAllowListEntries(ctx context.Context, organiza
 // GetOrganizationID fetches GitHub GraphQL API node_id for given organizationName.
 func (c *Client) GetOrganizationID(ctx context.Context, organizationName string) (string, error) {
 	reqData := GraphQLRequest{
-		Query: getOrganizationIdQuery,
+		Query: getOrganizationIDQuery,
 		Variables: map[string]any{
 			"organizationName": organizationName,
 		}}
 
-	resData, err := doRequest[GetOrganizationIdQueryResponse](ctx, c, reqData)
+	resData, err := doRequest[GetOrganizationIDQueryResponse](ctx, c, reqData)
 	if err != nil {
 		return "", errors.Wrap(err, "GetOrganizationID error")
 	}
 
-	return resData.Organization.Id, nil
+	return resData.Organization.ID, nil
 }

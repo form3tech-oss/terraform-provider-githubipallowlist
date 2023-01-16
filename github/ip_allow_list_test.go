@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-var someIpAllowListEntryParameters = IPAllowListEntryParameters{
+var someIPAllowListEntryParameters = IPAllowListEntryParameters{
 	Name:     "some-name",
 	Value:    "some value",
 	IsActive: false,
@@ -215,7 +215,7 @@ func TestUpdateIPAllowListEntryWithMissingEntry(t *testing.T) {
 	client := NewAuthenticatedGitHubClient(context.TODO(), "", WithGraphQLAPIURL(gitHubGraphQLAPIMock.URL))
 
 	// when
-	deletedEntryID, err := client.UpdateIPAllowListEntry(context.TODO(), "some-entry-id", someIpAllowListEntryParameters)
+	deletedEntryID, err := client.UpdateIPAllowListEntry(context.TODO(), "some-entry-id", someIPAllowListEntryParameters)
 
 	// then
 	assert.Error(t, err)
@@ -230,7 +230,7 @@ func TestUpdateIPAllowListEntryWithFailingServer(t *testing.T) {
 	client := NewAuthenticatedGitHubClient(context.TODO(), "", WithGraphQLAPIURL(gitHubGraphQLAPIMock.URL))
 
 	// when
-	deletedEntryID, err := client.UpdateIPAllowListEntry(context.TODO(), "some-entry-id", someIpAllowListEntryParameters)
+	deletedEntryID, err := client.UpdateIPAllowListEntry(context.TODO(), "some-entry-id", someIPAllowListEntryParameters)
 
 	// then
 	var target ErrorWithStatusCode

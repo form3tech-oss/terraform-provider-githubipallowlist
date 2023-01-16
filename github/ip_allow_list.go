@@ -16,11 +16,11 @@ type IPAllowListEntryParameters struct {
 
 type IPAllowListEntry struct {
 	ID             string    `json:"id"`
+	AllowListValue CIDR      `json:"allowListValue"`
+	Name           string    `json:"name"`
+	IsActive       bool      `json:"isActive"`
 	CreatedAt      time.Time `json:"createdAt"`
 	UpdatedAt      time.Time `json:"updatedAt"`
-	AllowListValue CIDR      `json:"allowListValue"`
-	IsActive       bool      `json:"isActive"`
-	Name           string    `json:"name"`
 }
 
 const createIPAllowListEntryMutation = `
@@ -30,11 +30,11 @@ mutation CreateIpAllowListEntry($ownerId: ID!, $name: String = "", $value: Strin
   ) {
     ipAllowListEntry {
       id
+      allowListValue
+      name
+      isActive
       createdAt
       updatedAt
-      allowListValue
-      isActive
-      name
     }
   }
 }`
@@ -50,8 +50,8 @@ mutation DeleteIpAllowListEntry($entryId: ID!) {
 `
 
 type DeleteUpAllowListEntryMutationResponse struct {
-	DeleteIpAllowListEntry struct {
-		IpAllowListEntry struct {
+	DeleteIPAllowListEntry struct {
+		IPAllowListEntry struct {
 			ID string `json:"id"`
 		} `json:"ipAllowListEntry"`
 	} `json:"deleteIpAllowListEntry"`
@@ -69,12 +69,12 @@ mutation UpdateIpAllowListEntry($entryId: ID!, $name: String!, $value: String!, 
     input: {ipAllowListEntryId: $entryId, allowListValue: $value, isActive: $isActive, name: $name}
   ) {
       ipAllowListEntry {
-      allowListValue
-      createdAt
-      id
-      isActive
-      name
-      updatedAt
+		  id
+		  name
+		  allowListValue
+		  isActive
+		  createdAt
+		  updatedAt
     }
   }
 }`
@@ -122,7 +122,7 @@ func (c *Client) DeleteIPAllowListEntry(ctx context.Context, entryID string) (st
 		return "", errors.Wrap(err, "DeleteIPAllowListEntry error")
 	}
 
-	return resData.DeleteIpAllowListEntry.IpAllowListEntry.ID, nil
+	return resData.DeleteIPAllowListEntry.IPAllowListEntry.ID, nil
 }
 
 // UpdateIPAllowListEntry uses updateIpAllowListEntry GraphQL mutation to set attributes an IP allow list entry with a given entryID to params.

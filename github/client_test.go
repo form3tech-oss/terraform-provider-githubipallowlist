@@ -6,36 +6,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
-	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 )
 
-const (
-	someGetOrganizationIPAllowListEntriesResponse = `{
-    "data": {
-        "organization": {
-            "ipAllowListEntries": {
-                "nodes": [
-                    {
-                        "allowListValue": "1.1.1.1",
-                        "isActive": true,
-                        "name": null,
-                        "id": "abc"
-                    }
-                ],
-                "pageInfo": {
-                    "hasNextPage": false,
-                    "startCursor": "abc",
-                    "endCursor": "abc"
-                }
-            }
-        }
-    }
-}`
-
-	pagedGetOrganizationIPAllowListEntriesResponse = `{
+const pagedGetOrganizationIPAllowListEntriesResponse = `{
     "data": {
         "organization": {
             "ipAllowListEntries": {
@@ -56,7 +32,8 @@ const (
         }
     }
 }`
-	responseWithGraphQLErrorTemplate = `{
+
+const responseWithGraphQLErrorTemplate = `{
     "data": null,
     "errors": [
         {
@@ -74,7 +51,6 @@ const (
         }
     ]
 }`
-)
 
 func TestNewGitHubClient(t *testing.T) {
 	client := NewAuthenticatedGitHubClient(context.TODO(), "")
@@ -144,7 +120,7 @@ func TestClientCanExecuteRequestsConcurrently(t *testing.T) {
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("Concurrency:%d", test.concurrentRequests), func(t *testing.T) {
 			// given
-			gitHubGraphQLAPIMock, receivedRequests := serverWaitingWithWritingAResponseUntilAllRequestsAreReceived(test.concurrentRequests)
+			gitHubGraphQLAPIMock, receivedRequests := serverWaitingWithWritingAResponseUntilAllRequestsAreReceived(test.concurrentRequests, someGetOrganizationIPAllowListEntriesResponse)
 			client := NewAuthenticatedGitHubClient(context.TODO(), "", WithConcurrency(int64(test.concurrentRequests)), WithGraphQLAPIURL(gitHubGraphQLAPIMock.URL), WithoutEntriesCaching())
 
 			// when
@@ -178,7 +154,7 @@ func TestClientCanNotExceedMaxConcurrentRequests(t *testing.T) {
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("Concurrency:%d", test.concurrentRequests), func(t *testing.T) {
 			// given
-			gitHubGraphQLAPIMock, receivedRequests := serverWaitingWithWritingAResponseUntilAllRequestsAreReceived(test.concurrentRequests + 1)
+			gitHubGraphQLAPIMock, receivedRequests := serverWaitingWithWritingAResponseUntilAllRequestsAreReceived(test.concurrentRequests+1, someGetOrganizationIPAllowListEntriesResponse)
 			client := NewAuthenticatedGitHubClient(context.TODO(), "", WithConcurrency(int64(test.concurrentRequests)), WithGraphQLAPIURL(gitHubGraphQLAPIMock.URL), WithoutEntriesCaching())
 
 			// when
@@ -216,18 +192,6 @@ func withTimeout(awaited func(), onDone func(), onTimeout func(), timeout time.D
 	case <-done:
 		onDone()
 	}
-}
-
-func serverWaitingWithWritingAResponseUntilAllRequestsAreReceived(expectedRequests int) (*httptest.Server, *sync.WaitGroup) {
-	var receivedRequests sync.WaitGroup
-	receivedRequests.Add(expectedRequests)
-	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		receivedRequests.Done()
-		receivedRequests.Wait()
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(someGetOrganizationIPAllowListEntriesResponse))
-	}))
-	return testServer, &receivedRequests
 }
 
 func serverWithPagedResponse(numberOfPagesToReturn int64) (*httptest.Server, *atomic.Int64) {

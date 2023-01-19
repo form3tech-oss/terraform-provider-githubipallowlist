@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+
 	"github.com/form3tech-oss/terraform-provider-githubipallowlist/github"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -47,7 +48,7 @@ func resourceGitHubIPAllowListEntryCreate(ctx context.Context, d *schema.Resourc
 
 	entry, err := client.github.CreateIPAllowListEntry(ctx, client.ownerID, entryDescription, github.CIDR(value), isActive)
 	if err != nil {
-		diag.FromErr(err)
+		return diag.FromErr(err)
 	}
 
 	d.SetId(entry.ID)

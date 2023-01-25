@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+
 	"github.com/pkg/errors"
 )
 
@@ -85,7 +86,7 @@ func (c *Client) getEnterpriseIPAllowListEntriesWithCache(ctx context.Context, e
 }
 
 func (c *Client) getEnterpriseIPAllowListEntries(ctx context.Context, enterpriseName string) ([]*IPAllowListEntry, error) {
-	reqData := GraphQLRequest{Query: getEnterpriseIPAllowListEntriesQuery, Variables: map[string]any{"org": enterpriseName}}
+	reqData := GraphQLRequest{Query: getEnterpriseIPAllowListEntriesQuery, Variables: map[string]any{"enterpriseName": enterpriseName}}
 	entries, err := paginate[GetEnterpriseIPAllowListQueryResponse, IPAllowListEntry](ctx, c, reqData,
 		func(t *GetEnterpriseIPAllowListQueryResponse) []*IPAllowListEntry {
 			return t.Enterprise.OwnerInfo.IPAllowListEntries.Nodes
